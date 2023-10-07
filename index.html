@@ -1,1 +1,206 @@
-test
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+</head>
+<body>
+	<button onclick="getUsers()">Refresh</button>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>Balance</th>
+        </tr>
+        <tbody id="balancesTable"></tbody>
+    </table>
+    <input type="text" id="recipient" placeholder="to address">
+    <input type="number" id="amount" placeholder="amount">
+    <button onclick="transfer()">Transfer</button>
+
+    <script>
+        if (window.ethereum) {
+            window.web3 = new Web3(window.ethereum);
+            window.ethereum.enable();
+        }
+
+		contract = new web3.eth.Contract([
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "payable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "from",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Transfer",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "balance",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "name",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "showUserAddresses",
+                "outputs": [
+                    {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ], '0x7e59b83C94B3a812a4eBE4e13EdAf2d00DeB9010');
+
+		web3.eth.getAccounts().then(accounts => {
+			const userAddress = accounts[0];
+			updateUI(userAddress);
+		});
+
+		async function updateUI(userAddress) {
+			const totalSupply = await contract.methods.supply().call();
+			const yourBalance = await contract.methods.balance(userAddress).call();
+
+			document.getElementById('totalSupply').textContent = totalSupply;
+			document.getElementById('yourBalance').textContent = yourBalance;
+		}
+		
+        async function getUsers() {
+            const userAddresses = await contract.methods.showUserAddresses().call();
+            const balancesTable = document.getElementById('balancesTable');
+            balancesTable.innerHTML = '';
+            for (const address of userAddresses) {
+                const balance = await contract.methods.balance(address).call();
+
+                const row = document.createElement('tr');
+                const userCell = document.createElement('td');
+                userCell.textContent = address;
+                const balanceCell = document.createElement('td');
+                balanceCell.textContent = balance;
+                row.appendChild(userCell);
+                row.appendChild(balanceCell);
+                balancesTable.appendChild(row);
+            }
+			const address = "0xD8C7978Be2A06F5752cB727fB3B7831B70bF394d";
+			const balance = await contract.methods.balance(address).call();
+			const row = document.createElement('tr');
+			const userCell = document.createElement('td');
+			userCell.textContent = address;
+			const balanceCell = document.createElement('td');
+			balanceCell.textContent = balance;
+			row.appendChild(userCell);
+			row.appendChild(balanceCell);
+			balancesTable.appendChild(row);
+        }
+
+		async function transfer() {
+			web3.eth.getAccounts().then(accounts => {
+				const userAddress = accounts[0];
+				contract.methods.transfer(document.getElementById('recipient').value, document.getElementById('amount').value).send({ from: userAddress })
+					.on('transactionHash', () => {
+						alert('transaction sent');
+					})
+					.on('receipt', () => {
+						alert('success');
+					})
+					.on('error', (error) => {
+						console.error(error);
+						alert('fail');
+					});
+			});
+		}
+    </script>
+</body>
+</html>
